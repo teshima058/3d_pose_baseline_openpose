@@ -17,7 +17,7 @@ This is the code for the paper
 
 ## Quick Start
 1. download [pretrained file](https://drive.google.com/file/d/1VECM2_SA3WbwK4_vVJ0h1telcFKBJ2vm/view?usp=sharing)
-1. 
+1. run `python predict.py [pretrained_model_path] [openpose_json_dir] --save_mp4 [Path of mp4 to save] --save_csv [Path of csv to save]`
 
 ## Training
 ### 1. Preparation
