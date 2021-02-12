@@ -72,7 +72,7 @@ def main(opt):
     # data loading
     print(">>> loading data")
     train_data = torch.load(opt.data_dir+'_train.pth')
-    mean_pose = np.mean(data['tgt'], axis=0)
+    mean_pose = np.mean(train_data['tgt'], axis=0)
     mean_pose = np.reshape(mean_pose, (19, 3))
     test_data=CMU(data_path=opt.data_dir+'_test.pth',  use_hg=opt.use_hg)
     train_data=CMU(data_path=opt.data_dir+'_train.pth',  use_hg=opt.use_hg)
@@ -138,7 +138,7 @@ def train(train_loader, model, criterion, optimizer, joint_num=19,
         
         joint2d, truth = data['joint2d'], data['truth']
         inputs=Variable(joint2d.cuda().type(torch.cuda.FloatTensor))
-        targets=Variable(truth.cuda(async=True).type(torch.cuda.FloatTensor))
+        targets=Variable(truth.cuda().type(torch.cuda.FloatTensor))
     
         outputs = model(inputs)
         outputs=torch.reshape(outputs,(-1,(joint_num)*3))
@@ -187,7 +187,7 @@ def test(test_loader, model, criterion, joint_num, procrustes=False):
         joint2d,truth=data['joint2d'],data['truth']
         
         inputs=Variable(joint2d.cuda().type(torch.cuda.FloatTensor))
-        targets=Variable(truth.cuda(async=True).type(torch.cuda.FloatTensor))
+        targets=Variable(truth.cuda().type(torch.cuda.FloatTensor))
 
         outputs = model(inputs)
 

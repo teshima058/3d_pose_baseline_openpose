@@ -1,9 +1,10 @@
+import os
 import json
 import math
-import os
 import pickle
 from random import randint, uniform
 import numpy as np
+import argparse 
 
 from pyquaternion import Quaternion
 from scipy.spatial import distance
@@ -12,12 +13,6 @@ import torch
 
 from src.datasets.utils import angle_between
 from src.poseVisualizer import visualizePose
-
-
-DATASER_DIR = '../3D-Pose-Baseline-LSTM/panoptic_dataset'
-SUFFIX = 'hdPose3d_stage1'
-SAVE_FILE_NAME = './data/cmu_dataset'
-DATA_RATIO = 10
 
 
 def normalize_skeleton(_skel, mode='coco'):
@@ -169,4 +164,18 @@ def generate_dataset(raw_dir, dir_name, save_file, data_ratio):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='')
+
+    parser.add_argument('panoptic_data_dir', help='\{DATASET_DIR\} described in the data structure at ReadMe (e.g. "./panoptic_dataset")')
+    parser.add_argument('data_suffix', help='suffix of directory name that you downloaded (e.g. hdPose3d_stage1)')
+    parser.add_argument('save_dataset_path', help='Path to save the dataset  (e.g. ./data/cmu_dataset)')
+    parser.add_argument('--data_ratio', default=10, help='sprit the dataset like Training Data : Test Data = DATA_RATIO : 1')
+
+    args = parser.parse_args()
+
+    DATASER_DIR = args.panoptic_data_dir
+    SUFFIX = args.data_suffix
+    SAVE_FILE_NAME = args.save_dataset_path
+    DATA_RATIO = args.data_ratio
+
     generate_dataset(DATASER_DIR, SUFFIX, SAVE_FILE_NAME, DATA_RATIO)

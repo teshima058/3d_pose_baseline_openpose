@@ -153,10 +153,6 @@ if __name__ == "__main__":
     parser.add_argument('--save_csv', help='Path to save the csv file (e.g. ./output/output.csv)')
 
     args = parser.parse_args()
-    if args.pretrained_model_path is None or args.openpose_json_dir is None:
-        print('[Error] Not enough arguments. Run the command as follows.')
-        print('python predict.py [pretrained_model_path] [openpose_json_dir] --save_mp4 [Path of mp4 to save] --save_csv [Path of csv to save]')
-        sys.exit()
 
     # ----- Predict -----
     print('Predicting 3D-Pose from {}'.format(args.openpose_json_dir))

@@ -15,9 +15,16 @@ This is the code for the paper
 }
 ```
 
+## Tested System Software
+* Windows (Version 10, 64-bit)
+* Python 3.7.9
+* The required Python library is written in requirements.txt
+
+Please run `pip install -r requirements.txt`
+
 ## Quick Start
-1. download [pretrained file](https://drive.google.com/file/d/1VECM2_SA3WbwK4_vVJ0h1telcFKBJ2vm/view?usp=sharing)
-1. run `python predict.py [pretrained_model_path] [openpose_json_dir] --save_mp4 [Path of mp4 to save] --save_csv [Path of csv to save]`
+1. Download [pretrained model file](https://drive.google.com/file/d/1VECM2_SA3WbwK4_vVJ0h1telcFKBJ2vm/view?usp=sharing)
+1. Run `python predict.py [pretrained_model_path] [openpose_json_dir] --save_mp4 [mp4 path to save] --save_csv [csv path to save] `
 
 ## Training
 ### 1. Preparation
@@ -35,13 +42,8 @@ ${DATASET_DIR}
             |-- ...
       |-- ...
 ```
-3. Change variables in `generate_dataset.py`.
-- `DATASER_DIR` = {Described in the data structure above}
-- `SUFFIX` = {According to the example above, `hdPose3d_stage1`}
-- `SAVE_FILE_NAME` = './data/cmu_dataset'
-- `DATA_RATIO` = {sprit the dataset like `Training Data : Test Data = DATA_RATIO : 1`}
-
-4. Run `generate_dataset.py` and you can obtained the dataset file at `SAVE_FILE_NAME`.
+3. Run `python generate_dataset.py [DATASET_DIR] [data_suffix] [save_dataset_path] [--data_ratio] {data_ratio}` 
+and you can obtained the dataset file at `[save_dataset_path]`. `[data_suffix]` is hdPose3d_stage1 in the above example and is used when searching the folder.
 
 You can use [the dataset](https://drive.google.com/drive/folders/1J4sgS-XDMXZUFYrmlgRjo3H35b_46YIX?usp=sharing) that has already been created.
 
