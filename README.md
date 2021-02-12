@@ -1,6 +1,6 @@
 # 3D Pose Baseline for OpenPose
 
-A PyTorch implementation of a simple baseline for 3d human pose estimation from OpenPose.
+A PyTorch implementation of a simple baseline for 3d human pose estimation from output of OpenPose.
 You can check the original Tensorflow implementation written by [Julieta Martinez et al.](https://github.com/una-dinosauria/3d-pose-baseline).
 Some codes for data processing are brought from the original version, thanks to the authors.
 
