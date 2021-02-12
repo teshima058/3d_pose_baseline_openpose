@@ -23,8 +23,10 @@ This is the code for the paper
 Please run `pip install -r requirements.txt`
 
 ## Quick Start
-1. Download [pretrained model file](https://drive.google.com/file/d/1VECM2_SA3WbwK4_vVJ0h1telcFKBJ2vm/view?usp=sharing)
+1. Download pretrained model file [best.chkpt](https://drive.google.com/file/d/1VECM2_SA3WbwK4_vVJ0h1telcFKBJ2vm/view?usp=sharing)
 1. Run `python predict.py [pretrained_model_path] [openpose_json_dir] --save_mp4 [mp4 path to save] --save_csv [csv path to save] `
+
+      The saved csv file is the format of the data captured by Kinect.
 
 ## Training
 ### 1. Preparation
@@ -45,7 +47,7 @@ ${DATASET_DIR}
 3. Run `python generate_dataset.py [DATASET_DIR] [data_suffix] [save_dataset_path] [--data_ratio] {data_ratio}` 
 and you can obtained the dataset file at `[save_dataset_path]`. `[data_suffix]` is hdPose3d_stage1 in the above example and is used when searching the folder.
 
-You can use [the dataset](https://drive.google.com/drive/folders/1J4sgS-XDMXZUFYrmlgRjo3H35b_46YIX?usp=sharing) that has already been created.
+      You can use [the dataset](https://drive.google.com/drive/folders/1J4sgS-XDMXZUFYrmlgRjo3H35b_46YIX?usp=sharing) that has already been created.
 
 ### 2. Training
 1. Check `opt.py` and change settings such as dataset, checkpoint path, etc.
