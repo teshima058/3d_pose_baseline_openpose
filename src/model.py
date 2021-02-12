@@ -8,7 +8,7 @@ import torch.nn as nn
 
 def weight_init(m):
     if isinstance(m, nn.Linear):
-        nn.init.kaiming_normal(m.weight)
+        nn.init.kaiming_normal_(m.weight)
 
 
 class Linear(nn.Module):
@@ -43,6 +43,7 @@ class Linear(nn.Module):
 
 class LinearModel(nn.Module):
     def __init__(self,
+                 joint_num=19,
                  linear_size=1024,
                  num_stage=2,
                  p_dropout=0.5):
@@ -53,9 +54,9 @@ class LinearModel(nn.Module):
         self.num_stage = num_stage
 
         # 2d joints
-        self.input_size =  16 * 2
+        self.input_size =  joint_num * 2
         # 3d joints
-        self.output_size = 16 * 3
+        self.output_size = joint_num * 3
 
         # process input to linear size
         self.w1 = nn.Linear(self.input_size, self.linear_size)
