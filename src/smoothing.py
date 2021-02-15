@@ -26,7 +26,7 @@ def checkOutlier(pose3d, axis='x'):
     plt.show()
     plt.close()
 
-def smoothingPose(pose3d, span=20, threshold=1.5):
+def smoothingPose(pose3d, span=20, threshold=2):
     """
     Calculate the mean and standard deviation for each {span}-frame, and linearly interpolate if there are outliers.
     The higher the threshold, the fewer outliers will be detected.

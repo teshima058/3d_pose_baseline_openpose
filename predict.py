@@ -97,7 +97,7 @@ class PoseBaselineForCOCO():
 
         # Check if only the upper body is detected
         lower_body_conf = np.array(confs)[:,8:14]
-        if np.mean(lower_body_conf < 0.4):
+        if np.mean(lower_body_conf) < 0.4:
             isUpperBody = True
         else:
             isUpperBody = False
@@ -140,8 +140,8 @@ class PoseBaselineForCOCO():
         inputs = Variable(torch.tensor(inputs).cuda().type(torch.cuda.FloatTensor)).reshape(-1, 38)
         outputs = self.model(inputs)
         outputs = outputs.cpu().detach().numpy().reshape(-1, 19, 3)
-        unnorm_outputs = unNormalize_skeleton(outputs, shoulder_len, neck_pos, mode='cmu')
-        return unnorm_outputs
+        # outputs = unNormalize_skeleton(outputs, shoulder_len, neck_pos, mode='cmu')
+        return outputs
 
 
 if __name__ == "__main__":
@@ -153,6 +153,7 @@ if __name__ == "__main__":
     parser.add_argument('--save_csv', help='Path to save the csv file (e.g. ./output/output.csv)')
 
     args = parser.parse_args()
+
 
     # ----- Predict -----
     print('Predicting 3D-Pose from {}'.format(args.openpose_json_dir))
@@ -174,7 +175,7 @@ if __name__ == "__main__":
 
 
     # ----- Save kinect format csv file -----
-    if args.save_mp4:
-        CMUPose2KinectData(pose3d, save_path=args.save_csv)
+    if args.save_csv:
+        CMUPose2KinectData(pose3d, save_csv=args.save_csv)
 
     print('Finish')
