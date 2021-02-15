@@ -18,7 +18,7 @@ This is the code for the paper
 ## Tested System Software
 * Windows (Version 10, 64-bit)
 * Python 3.7.9
-* The required Python library is written in requirements.txt
+* The required Python library is written in [requirements.txt](./requirements.txt)
 
 Please run `pip install -r requirements.txt`
 
