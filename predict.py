@@ -80,12 +80,23 @@ class PoseBaselineForCOCO():
         for file_name in json_files:
             _file = os.path.join(openpose_output_dir, file_name)
             data = json.load(open(_file))
+            if len(data['people']) == 0:
+                continue
 
             # get frame INDEX from 12 digit number string
             frame_indx = re.findall("(\d{12})", file_name)
             # if int(frame_indx[0]) <= 0:
             # n order to register the first frame as it is, specify INDEX as it is
             tmp = data["people"][0]["pose_keypoints_2d"]
+
+            # if openpose is 25 joints version -> convert to 18 joints
+            if len(tmp) == 75:
+                # remove joint index
+                remove_idx = [8, 19, 20, 21, 22, 23, 24]
+                tmp = np.array(tmp).reshape([-1,3])
+                tmp = np.delete(tmp, remove_idx, axis=0)
+                tmp = tmp.reshape(-1)
+
             pose_frame, conf = [], []
             for i in range(len(tmp)):
                 if i % 3 == 2:
@@ -95,6 +106,68 @@ class PoseBaselineForCOCO():
             confs.append(conf)
             pose2d.append(pose_frame)
 
+        return np.array(pose2d), np.array(confs)
+    
+    # COCO-Data(18 Joints) -> CMU-Data(19 Joints)
+    def convertCOCO2CMU(self, pose2d, conf_rate):
+        pose2d = pose2d.reshape(-1, 18, 2)
+        cmu_poses = []
+        cmu_confs = []
+        for i,pose in enumerate(pose2d):
+            cmu_pose = [None] * 19
+            cmu_conf = [None] * 19
+            for j in range(len(pose)):
+                cmu_pose[coco2cmu[j]] = pose[j]
+                cmu_conf[coco2cmu[j]] = conf_rate[i][j]
+            cmu_pose[2] = (pose[8] + pose[11]) / 2                      # MidHip
+            cmu_conf[2] = (conf_rate[i][8] + conf_rate[i][11]) / 2      # MidHip
+            cmu_poses.append(cmu_pose)
+            cmu_confs.append(cmu_conf)
+        cmu_poses = np.array(cmu_poses)
+        cmu_confs = np.array(cmu_confs)
+        return cmu_poses, cmu_confs
+    
+    # linealy interpolate joints that not estimated by OpenPose 
+    def linearInterpolation(self, skeletons, conf_rate):
+        conf_rate = conf_rate.T
+        skeletons = skeletons.reshape([-1, skeletons.shape[1]*skeletons.shape[2]]).T
+        outliers = []       # frames to interpolate for each joint
+        for joint_idx in range(len(conf_rate)):
+            outlier = []
+            i = 0
+            for frame in range(len(conf_rate[joint_idx])):
+                if frame < i or frame == 0 or frame == len(conf_rate[joint_idx])-1:
+                    continue
+                if conf_rate[joint_idx][frame] == 0:
+                    out = []
+                    i = frame
+                    skip = False
+                    while(conf_rate[joint_idx][i] == 0):
+                        out.append(i)
+                        i += 1
+                        if i > len(conf_rate[joint_idx]) - 1:
+                            skip = True
+                            break
+                    if not skip:
+                        outlier.append([out[0], out[len(out)-1]])
+            outliers.append(outlier)
+        # Linear Interpolation
+        for joint in range(len(outliers)):
+            for frame in outliers[joint]:
+                j = 1
+                for i in range(frame[0], frame[1] + 1):
+                    # Interpolation
+                    skeletons[joint*2+0][i] = skeletons[joint*2+0][frame[0]-1] + j * (skeletons[joint*2+0][frame[1]+1] - skeletons[joint*2+0][frame[0]-1]) / (frame[1] - frame[0] + 2)
+                    skeletons[joint*2+1][i] = skeletons[joint*2+1][frame[0]-1] + j * (skeletons[joint*2+1][frame[1]+1] - skeletons[joint*2+1][frame[0]-1]) / (frame[1] - frame[0] + 2)
+                    j += 1
+        skeletons = skeletons.T.reshape([-1, 19, 2])
+        return skeletons
+
+    # inputs : torch_tensor[batch_size][joints(19*2)]
+    # For data that include only upper body, fill the lower body with mean_pose.
+    def predict(self, openpose_json_dir):
+        pose2d, confs = self.read_openpose_json(openpose_json_dir)
+
         # Check if only the upper body is detected
         lower_body_conf = np.array(confs)[:,8:14]
         if np.mean(lower_body_conf) < 0.4:
@@ -102,37 +175,19 @@ class PoseBaselineForCOCO():
         else:
             isUpperBody = False
 
-        return np.array(pose2d), isUpperBody
-    
-    # COCO-Data(18 Joints) -> CMU-Data(19 Joints)
-    def convertCOCO2CMU(self, pose2d):
-        pose2d = pose2d.reshape(-1, 18, 2)
-        cmu_poses = []
-        for pose in pose2d:
-            cmu_pose = [None] * 19
-            for i in range(len(pose)):
-                cmu_pose[coco2cmu[i]] = pose[i]
-            cmu_pose[2] = (pose[8] + pose[11]) / 2  # MidHip
-            cmu_poses.append(cmu_pose)
-        cmu_poses = np.array(cmu_poses)
-        return cmu_poses
-
-    # inputs : torch_tensor[batch_size][joints(19*2)]
-    # For data that include only upper body, fill the lower body with mean_pose.
-    def predict(self, openpose_json_dir):
-        pose2d, isUpperBody = self.read_openpose_json(openpose_json_dir)
-        pose2d = self.convertCOCO2CMU(pose2d)
+        # convert COCO joints index to CMU joints index
+        pose2d, confs = self.convertCOCO2CMU(pose2d, confs)
         
-        # for debug
-        # p = np.hstack((pose2d[0], np.array([np.zeros(19)]).T ))
-        # visualizePose(p, mode='upper')
-        
+        # Normalize input pose
         inputs, shoulder_len, neck_pos = normalize_skeleton(pose2d, mode='cmu')
+
+        # Linear interpolation of unestimated joints
+        inputs = self.linearInterpolation(inputs, confs)
         
+        # if only upperbody is estimated, fill the lower body with mean pose
         if isUpperBody:
             upper_joints = [0, 1, 3, 4, 5, 9, 10, 11]
             for i in range(len(inputs)):
-                # fill the lower body with mean_pose
                 for j in range(len(inputs[i])):
                     if not j in upper_joints:
                         inputs[i][j] = self.mean_pose[j][0:2]

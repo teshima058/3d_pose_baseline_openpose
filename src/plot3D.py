@@ -45,6 +45,12 @@ def animate3D(poses, save_path, fps=25, fig_scale=1.5, rotation=40, gt=None, isU
     else:
         edges = np.array([[0,1], [0,2], [0,3], [3,4], [4,5], [2,6], [6,7], [7,8], [0,9], [9,10], [10,11], [2,12], [12,13], [13,14], [1,15], [15,16], [1,17], [17,18]])
 
+    nan_index = []
+    for i,isNanArray in enumerate(np.isnan(poses).any(axis=1)):
+        if True in isNanArray:
+            nan_index.append(i)
+    poses = np.delete(poses, nan_index, axis=0)
+
     # ax_3d.set_aspect('equal')
     ax_3d.set_xlabel("x"), ax_3d.set_ylabel("z"), ax_3d.set_zlabel("y")
     mean = np.mean(np.mean(poses, axis=0), axis=0)
