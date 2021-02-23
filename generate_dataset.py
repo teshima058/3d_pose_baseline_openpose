@@ -30,40 +30,72 @@ def normalize_skeleton(_skel, mode='coco'):
 
     if mode == 'coco':
         neck_joint_idx = 1
+        nose_joint_idx = 0
         r_shoulder_joint_idx = 2
         l_shoulder_joint_idx = 5
-    elif mode == 'cmu':
+    elif mode == 'cmu' or mode == 'openpose':
         neck_joint_idx = 0
+        nose_joint_idx = 1
         r_shoulder_joint_idx = 9
         l_shoulder_joint_idx = 3
     else:
         raise AssertionError("Choose 'coco' or 'cmu' for the normalization argument")
     
-    new_poses = []
-    angles = []
-    shoulder_lengths = []
-    neck_positions = []
-    for pose in _skel:
-        # l_shoulder = np.array([pose[l_shoulder_joint_idx][0], pose[l_shoulder_joint_idx][2]])
-        # r_shoulder = np.array([pose[r_shoulder_joint_idx][0], pose[r_shoulder_joint_idx][2]])
-        # angle = angle_between(l_shoulder - r_shoulder, [-1.0, 0.0])
-        # angles.append(angle)
-        # quaternion = Quaternion(axis=[0, 1, 0], angle=angle)  # radian
-        shoulder_len = distance.euclidean(pose[neck_joint_idx], pose[l_shoulder_joint_idx])
-        shoulder_lengths.append(shoulder_len)
-        neck_positions.append(pose[neck_joint_idx])
-        
-        new_pose = []
-        for joint in pose:
-            # rotate to face the front
-            # joint = quaternion.rotate(joint)
-            # recoordinate and normalize
-            new_pose.append((joint - pose[neck_joint_idx]) / shoulder_len)
-        new_poses.append(new_pose)
-    new_poses = np.array(new_poses)
+    if mode == 'cmu':
+        new_poses = []
+        angles = []
+        shoulder_lengths = []
+        neck_positions = []
+        for pose in _skel:
+            shoulder_len = distance.euclidean(pose[neck_joint_idx], pose[l_shoulder_joint_idx])
+            shoulder_lengths.append(shoulder_len)
+            neck_positions.append(pose[neck_joint_idx])
+            
+            new_pose = []
+            for joint in pose:
+                new_pose.append((joint - pose[neck_joint_idx]) / shoulder_len)
+            new_poses.append(new_pose)
+        new_poses = np.array(new_poses)
 
-    # return new_poses, np.array(angle), np.array(shoulder_lengths), np.array(neck_positions)
-    return new_poses, np.array(shoulder_lengths), np.array(neck_positions)
+        return new_poses, np.array(shoulder_lengths), np.array(neck_positions)
+
+    elif mode == 'openpose':
+        # ----- Localization -----
+        localize_pose = []
+        neck_positions = []
+        for pose in _skel:
+            tmp = []
+            for joint in pose:
+                tmp.append(joint - pose[neck_joint_idx])
+            localize_pose.append(tmp)
+            neck_positions.append(pose[neck_joint_idx])
+        localize_pose = np.array(localize_pose)
+        neck_positions = np.array(neck_positions)
+
+        # ----- Scaling ------
+        # Find the frame with the speaker facing most front
+        face_front_value = 10000
+        for i in range(len(localize_pose)):
+            # Search by x coordinate of the nose
+            if face_front_value > abs(localize_pose[i][nose_joint_idx][0]):
+                face_front_value = abs(localize_pose[i][nose_joint_idx][0])
+                face_front_frame = i
+        scale_factor = distance.euclidean(localize_pose[face_front_frame][neck_joint_idx], localize_pose[face_front_frame][l_shoulder_joint_idx])
+
+        normalized_pose = []
+        for pose in localize_pose:
+            tmp = []
+            for joint in pose:
+                tmp.append(joint / scale_factor)
+            normalized_pose.append(tmp)
+        normalized_pose = np.array(normalized_pose)
+
+        return normalized_pose, neck_positions, scale_factor
+    
+    else:
+        print("[Error] supecify mode ('coco' or 'cmu' or 'openpose') when normalizing")
+        sys.exit(-1)
+
 
 def unNormalize_skeleton(_skel, shoulder_lengths, neck_positions, mode='coco'):
     if mode == 'coco':

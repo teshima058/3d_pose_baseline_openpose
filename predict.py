@@ -14,6 +14,7 @@ from src.model import LinearModel, weight_init
 from src.smoothing import smoothingPose
 from src.cmu2kinect import CMUPose2KinectData
 from src.plot3D import plot3D, animate3D
+from src.animate_pose import plotUpperBody
 from src.poseVisualizer import visualizePose
 
 cmu_joint_index = [''] * 19
@@ -140,6 +141,7 @@ class PoseBaselineForCOCO():
                     if conf_rate[joint_idx][i] != 0:
                         skeletons[joint_idx*2+0][0] = skeletons[joint_idx*2+0][i]
                         skeletons[joint_idx*2+1][0] = skeletons[joint_idx*2+1][i]
+                        break
             # End frame
             end_frame = len(conf_rate[joint_idx])-1
             if conf_rate[joint_idx][end_frame] == 0:
@@ -147,6 +149,7 @@ class PoseBaselineForCOCO():
                     if conf_rate[joint_idx][i] != 0:
                         skeletons[joint_idx*2+0][end_frame] = skeletons[joint_idx*2+0][i]
                         skeletons[joint_idx*2+1][end_frame] = skeletons[joint_idx*2+1][i]
+                        break
         
         # Second detect outliers
         outliers = []       # frames to interpolate for each joint
@@ -195,13 +198,16 @@ class PoseBaselineForCOCO():
             isUpperBody = False
 
         # convert COCO joints index to CMU joints index
-        pose2d, confs = self.convertCOCO2CMU(pose2d, confs)
+        inputs, confs = self.convertCOCO2CMU(pose2d, confs)
         
-        # Normalize input pose
-        inputs, shoulder_len, neck_pos = normalize_skeleton(pose2d, mode='cmu')
-
         # Linear interpolation of unestimated joints
         inputs = self.linearInterpolation(inputs, confs)
+        # [Debug] check the result of linear interpolation
+        # plotUpperBody(inputs, 'test.mp4', fps=25)
+
+        # Normalize input pose
+        inputs, shoulder_len, neck_pos = normalize_skeleton(inputs, mode='openpose')
+
         
         # if only upperbody is estimated, fill the lower body with mean pose
         if isUpperBody:
