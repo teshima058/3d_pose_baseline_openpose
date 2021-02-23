@@ -131,6 +131,24 @@ class PoseBaselineForCOCO():
     def linearInterpolation(self, skeletons, conf_rate):
         conf_rate = conf_rate.T
         skeletons = skeletons.reshape([-1, skeletons.shape[1]*skeletons.shape[2]]).T
+        
+        # At first, if confidence rate of first or end frame is 0, it is interpolated with the nearest value
+        for joint_idx in range(len(conf_rate)):
+            # First frame
+            if conf_rate[joint_idx][0] == 0:
+                for i in range(1, len(conf_rate[joint_idx])):
+                    if conf_rate[joint_idx][i] != 0:
+                        skeletons[joint_idx*2+0][0] = skeletons[joint_idx*2+0][i]
+                        skeletons[joint_idx*2+1][0] = skeletons[joint_idx*2+1][i]
+            # End frame
+            end_frame = len(conf_rate[joint_idx])-1
+            if conf_rate[joint_idx][end_frame] == 0:
+                for i in range(end_frame-1, 0, -1):
+                    if conf_rate[joint_idx][i] != 0:
+                        skeletons[joint_idx*2+0][end_frame] = skeletons[joint_idx*2+0][i]
+                        skeletons[joint_idx*2+1][end_frame] = skeletons[joint_idx*2+1][i]
+        
+        # Second detect outliers
         outliers = []       # frames to interpolate for each joint
         for joint_idx in range(len(conf_rate)):
             outlier = []
@@ -151,7 +169,8 @@ class PoseBaselineForCOCO():
                     if not skip:
                         outlier.append([out[0], out[len(out)-1]])
             outliers.append(outlier)
-        # Linear Interpolation
+
+        # Finally Linear Interpolation
         for joint in range(len(outliers)):
             for frame in outliers[joint]:
                 j = 1
