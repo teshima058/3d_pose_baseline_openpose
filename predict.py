@@ -157,6 +157,7 @@ class PoseBaselineForCOCO():
             outlier = []
             i = 0
             for frame in range(len(conf_rate[joint_idx])):
+                # if first or end frame -> cannot interpolate
                 if frame < i or frame == 0 or frame == len(conf_rate[joint_idx])-1:
                     continue
                 if conf_rate[joint_idx][frame] == 0:
@@ -166,11 +167,9 @@ class PoseBaselineForCOCO():
                     while(conf_rate[joint_idx][i] == 0):
                         out.append(i)
                         i += 1
-                        if i > len(conf_rate[joint_idx]) - 1:
-                            skip = True
+                        if i >= len(conf_rate[joint_idx]) - 1:
                             break
-                    if not skip:
-                        outlier.append([out[0], out[len(out)-1]])
+                    outlier.append([out[0], out[len(out)-1]])
             outliers.append(outlier)
 
         # Finally Linear Interpolation
@@ -186,6 +185,7 @@ class PoseBaselineForCOCO():
         return skeletons
 
     # inputs : torch_tensor[batch_size][joints(19*2)]
+    # outputs: linealy interpolated 2d-pose, 3d-pose 
     # For data that include only upper body, fill the lower body with mean_pose.
     def predict(self, openpose_json_dir):
         pose2d, confs = self.read_openpose_json(openpose_json_dir)
@@ -198,16 +198,13 @@ class PoseBaselineForCOCO():
             isUpperBody = False
 
         # convert COCO joints index to CMU joints index
-        inputs, confs = self.convertCOCO2CMU(pose2d, confs)
+        pose2d, confs = self.convertCOCO2CMU(pose2d, confs)
         
         # Linear interpolation of unestimated joints
-        inputs = self.linearInterpolation(inputs, confs)
-        # [Debug] check the result of linear interpolation
-        # plotUpperBody(inputs, 'test.mp4', fps=25)
+        pose2d = self.linearInterpolation(pose2d, confs)
 
         # Normalize input pose
-        inputs, shoulder_len, neck_pos = normalize_skeleton(inputs, mode='openpose')
-
+        inputs, shoulder_len, neck_pos = normalize_skeleton(pose2d, mode='openpose')
         
         # if only upperbody is estimated, fill the lower body with mean pose
         if isUpperBody:
@@ -221,7 +218,7 @@ class PoseBaselineForCOCO():
         outputs = self.model(inputs)
         outputs = outputs.cpu().detach().numpy().reshape(-1, 19, 3)
         # outputs = unNormalize_skeleton(outputs, shoulder_len, neck_pos, mode='cmu')
-        return outputs
+        return pose2d, outputs
 
 
 if __name__ == "__main__":
@@ -231,15 +228,16 @@ if __name__ == "__main__":
     parser.add_argument('openpose_json_dir', help='Directory containing the json files output by OpenPose')
     parser.add_argument('--save_mp4', help='Path to save the video (e.g. ./videos/output.mp4)')
     parser.add_argument('--save_csv', help='Path to save the csv file (e.g. ./output/output.csv)')
+    parser.add_argument('--save_2d_pose_video', help='[for Debug] Path to save the mp4 file (e.g. ./output/output.mp4)')
 
     args = parser.parse_args()
 
 
     # ----- Predict -----
     print('Predicting 3D-Pose from {}'.format(args.openpose_json_dir))
-    p = PoseBaselineForCOCO(args.pretrain_model_path)
-    pose3d = p.predict(args.openpose_json_dir)
-    pose3d = smoothingPose(pose3d)
+    pbl = PoseBaselineForCOCO(args.pretrain_model_path)
+    inputs, pose3d = pbl.predict(args.openpose_json_dir)
+    # pose3d = smoothingPose(pose3d)
 
 
     # ----- Plot sample pose -----
@@ -252,10 +250,17 @@ if __name__ == "__main__":
     if args.save_mp4:
         animate3D(pose3d, save_path=args.save_mp4)
         # animate3D(pose3d, save_path="./videos/upperbody_smoothed.mp4", isUpperBody=True)
+        print("Saved mp4 file to ", args.save_mp4)
 
 
     # ----- Save kinect format csv file -----
     if args.save_csv:
         CMUPose2KinectData(pose3d, save_csv=args.save_csv)
+        print('Saved csv file to {}'.format(args.save_csv))
+
+
+    # [Debug] check the result of linear interpolation
+    if args.save_2d_pose_video:
+        plotUpperBody(inputs, args.save_2d_pose_video, width=640, height=360, fps=25)
 
     print('Finish')

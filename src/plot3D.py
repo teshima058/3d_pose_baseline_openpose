@@ -99,7 +99,6 @@ def animate3D(poses, save_path, fps=25, fig_scale=1.5, rotation=40, gt=None, isU
         ani = animation.FuncAnimation(fig, update, len(poses), interval=1000/fps)
     writer = animation.FFMpegWriter(fps=fps, metadata=dict(artist='Me'), bitrate=1800)
     ani.save(save_path, writer=writer)
-    print("Saved mp4 file to ", save_path)
 
 def main():
     data_path = './data/cmu_dataset_tmp_train.pickle'

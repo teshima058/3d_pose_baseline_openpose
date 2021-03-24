@@ -7,9 +7,6 @@ import torch
 from torch.utils.data import Dataset
 import numpy as np
 
-TRAIN_SUBJECTS = [1, 5, 6, 7, 8]
-TEST_SUBJECTS = [9, 11]
-
 class CMU(Dataset):
     def __init__(self, data_path, use_hg=True):
         """

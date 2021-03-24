@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from src.plotPose import Plot
 
 
-def plotUpperBody(pose_data, save_path, fps=12):
+def plotUpperBody(pose_data, save_path, width=1280, height=720, fps=12):
     upper_idx = [1, 0, 3, 4, 5, 9, 10, 11, 15, 16, 17, 18]
     pose2d = pose_data[:, upper_idx]
     # rotate y axis
@@ -15,7 +15,7 @@ def plotUpperBody(pose_data, save_path, fps=12):
     time = np.arange(len(pose2d))
     time = time.reshape(-1, 1)
     pose2d = np.concatenate([pose2d, time], axis=1)
-    p = Plot((0, 1280), (-720, 0))
+    p = Plot((0, width), (-1*height, 0))
     anim = p.animate(pose2d, 1000/fps)
     p.save(anim, save_path, fps=fps)
 

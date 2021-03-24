@@ -74,5 +74,4 @@ def CMUPose2KinectData(pose3d, save_mp4=None, save_csv=None):
             kinect_csv_data[i] = kinect_csv_data[i].astype('int')
         kinect_csv_data.to_csv(save_csv, header=False, index=False)
 
-        print('Saved csv file to {}'.format(save_csv))
     
