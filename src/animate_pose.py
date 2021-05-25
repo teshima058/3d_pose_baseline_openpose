@@ -5,7 +5,11 @@ from src.plotPose import Plot
 
 
 def plotUpperBody(pose_data, save_path, width=1280, height=720, fps=12):
-    upper_idx = [1, 0, 3, 4, 5, 9, 10, 11, 15, 16, 17, 18]
+    if pose_data.shape[1] == 15:
+        upper_idx = [1, 0, 3, 4, 5, 9, 10, 11]
+    else:
+        upper_idx = [1, 0, 3, 4, 5, 9, 10, 11, 15, 16, 17, 18]
+    
     pose2d = pose_data[:, upper_idx]
     # rotate y axis
     for frame in range(len(pose2d)):

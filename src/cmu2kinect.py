@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from src.plot3D import plot3D, animate3D
 from src.poseVisualizer import visualizePose
 
-def CMUPose2KinectData(pose3d, save_mp4=None, save_csv=None):
+def CMUPose2KinectData(pose3d, save_mp4=None, save_csv=None, fps=25):
     """
     pose3d : CMU data ( shape = ({frame_num}, 19, 3) )
     Save the csv file converted to Kinect data for Labanotation
@@ -18,10 +18,10 @@ def CMUPose2KinectData(pose3d, save_mp4=None, save_csv=None):
         # Replacing joints
         for j in range(len(cmu2kinect)):
             kinect_data[i][cmu2kinect[j]] = pose[j]
-        # spinMid -> Midpoint between midhip and midshoulder
+        # spinMid -> Midpoint between midhip and neck
         kinect_data[i][1] = (pose[0] + pose[2]) / 2
-        # head -> Midpoint between both ears
-        kinect_data[i][3] = (pose[16] + pose[18]) / 2
+        # head -> same as nose
+        kinect_data[i][3] = pose[1]
         # toes of both feet -> both ankles
         kinect_data[i][15] = pose[8]
         kinect_data[i][19] = pose[14]
@@ -48,7 +48,8 @@ def CMUPose2KinectData(pose3d, save_mp4=None, save_csv=None):
     # Save CSV
     if save_csv:
         # Timestamp for kinect data
-        timestamp = np.arange(0, len(pose3d)*50, 50)
+        msec = 1/fps * 1000
+        timestamp = np.arange(0, len(pose3d)*msec, msec)
         timestamp = timestamp.reshape(-1, 1)
         
         # Extra data for kinect data

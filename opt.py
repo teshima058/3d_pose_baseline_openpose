@@ -18,12 +18,12 @@ class Options:
         # ===============================================================
         #                     General options
         # ===============================================================
-        self.parser.add_argument('--data_dir',       type=str, default='data/cmu_dataset', help='path to dataset')
+        self.parser.add_argument('--data_dir',       type=str, default='data/cmu_dataset_15joints', help='path to dataset')
         self.parser.add_argument('--ckpt',           type=str, default='checkpoint/', help='path to save checkpoint')
-        self.parser.add_argument('--exp',            type=str, default='test', help='ID of experiment')
+        self.parser.add_argument('--exp',            type=str, default='15joints', help='ID of experiment')
         self.parser.add_argument('--log',            type=str, default='log/', help='path to save checkpoint')
         self.parser.add_argument('--load',           type=str, default=None, help='path to load a pretrained checkpoint')
-        self.parser.add_argument('--joint_num',     type=str, default=19, help='joint num (cmu dataset is 19)')
+        self.parser.add_argument('--joint_num',     type=str, default=15, help='joint num (cmu dataset is 19)')
 
         self.parser.add_argument('--test',           dest='test', action='store_true', help='test')
         self.parser.add_argument('--resume',         dest='resume', action='store_true', help='resume to train')

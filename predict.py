@@ -2,6 +2,7 @@ import os
 import sys
 import re
 import json
+import cv2
 import numpy as np
 import argparse 
 from tqdm import tqdm
@@ -58,14 +59,33 @@ coco_joint_index[15] = 'LEye'
 coco_joint_index[16] = 'REar'
 coco_joint_index[17] = 'LEar'
 
+joint15_index = [''] * 15
+joint15_index[0]  = 'Neck'
+joint15_index[1]  = 'Nose'
+joint15_index[2]  = 'MidHip'
+joint15_index[3]  = 'LShoulder'
+joint15_index[4]  = 'LElbow'
+joint15_index[5]  = 'LWrist'
+joint15_index[6]  = 'LHip'
+joint15_index[7]  = 'LKnee'
+joint15_index[8]  = 'LAnkle'
+joint15_index[9]  = 'RShoulder'
+joint15_index[10] = 'RElbow'
+joint15_index[11] = 'RWrist'
+joint15_index[12] = 'RHip'
+joint15_index[13] = 'RKnee'
+joint15_index[14] = 'RAnkle'
+
 coco2cmu = [1, 0, 9, 10, 11, 3, 4, 5, 12, 13, 14, 6, 7, 8, 17, 15, 18, 16]
+coco2joint15 = [1, 0, 9, 10, 11, 3, 4, 5, 12, 13, 14, 6, 7, 8]
 
 class PoseBaselineForCOCO():
     def __init__(self, pretrained_model_path):
         ckpt = torch.load(pretrained_model_path)
         self.mean_pose = ckpt['mean_pose']
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self.model = LinearModel(joint_num=19)
+        self.joint_num = ckpt['mean_pose'].shape[0]
+        self.model = LinearModel(joint_num=self.joint_num)
         self.model.cuda()
         self.model.load_state_dict(ckpt['state_dict'])
         self.model.eval()
@@ -127,6 +147,25 @@ class PoseBaselineForCOCO():
         cmu_poses = np.array(cmu_poses)
         cmu_confs = np.array(cmu_confs)
         return cmu_poses, cmu_confs
+
+    # COCO-Data(18 Joints) -> CMU-Data(15 Joints)
+    def convertCOCO2CMU15joints(self, pose2d, conf_rate):
+        pose2d = pose2d.reshape(-1, 18, 2)
+        cmu_poses = []
+        cmu_confs = []
+        for i,pose in enumerate(pose2d):
+            cmu_pose = [None] * 15
+            cmu_conf = [None] * 15
+            for j in range(len(coco2joint15)):
+                cmu_pose[coco2joint15[j]] = pose[j]
+                cmu_conf[coco2joint15[j]] = conf_rate[i][j]
+            cmu_pose[2] = (pose[8] + pose[11]) / 2                      # MidHip
+            cmu_conf[2] = (conf_rate[i][8] + conf_rate[i][11]) / 2      # MidHip
+            cmu_poses.append(cmu_pose)
+            cmu_confs.append(cmu_conf)
+        cmu_poses = np.array(cmu_poses)
+        cmu_confs = np.array(cmu_confs)
+        return cmu_poses, cmu_confs
     
     # linealy interpolate joints that not estimated by OpenPose 
     def linearInterpolation(self, skeletons, conf_rate):
@@ -181,24 +220,27 @@ class PoseBaselineForCOCO():
                     skeletons[joint*2+0][i] = skeletons[joint*2+0][frame[0]-1] + j * (skeletons[joint*2+0][frame[1]+1] - skeletons[joint*2+0][frame[0]-1]) / (frame[1] - frame[0] + 2)
                     skeletons[joint*2+1][i] = skeletons[joint*2+1][frame[0]-1] + j * (skeletons[joint*2+1][frame[1]+1] - skeletons[joint*2+1][frame[0]-1]) / (frame[1] - frame[0] + 2)
                     j += 1
-        skeletons = skeletons.T.reshape([-1, 19, 2])
+        skeletons = skeletons.T.reshape([skeletons.T.shape[0], -1, 2])
         return skeletons
 
     # inputs : torch_tensor[batch_size][joints(19*2)]
     # outputs: linealy interpolated 2d-pose, 3d-pose 
     # For data that include only upper body, fill the lower body with mean_pose.
-    def predict(self, openpose_json_dir):
+    def predict(self, openpose_json_dir, mode='joint19'):
         pose2d, confs = self.read_openpose_json(openpose_json_dir)
 
         # Check if only the upper body is detected
         lower_body_conf = np.array(confs)[:,8:14]
-        if np.mean(lower_body_conf) < 0.4:
+        if np.mean(lower_body_conf) < 0.5:
             isUpperBody = True
         else:
             isUpperBody = False
 
         # convert COCO joints index to CMU joints index
-        pose2d, confs = self.convertCOCO2CMU(pose2d, confs)
+        if mode == 'joint19':
+            pose2d, confs = self.convertCOCO2CMU(pose2d, confs)
+        elif mode == 'joint15':
+            pose2d, confs = self.convertCOCO2CMU15joints(pose2d, confs)
         
         # Linear interpolation of unestimated joints
         pose2d = self.linearInterpolation(pose2d, confs)
@@ -214,9 +256,10 @@ class PoseBaselineForCOCO():
                     if not j in upper_joints:
                         inputs[i][j] = self.mean_pose[j][0:2]
 
-        inputs = Variable(torch.tensor(inputs).cuda().type(torch.cuda.FloatTensor)).reshape(-1, 38)
+        inputs = Variable(torch.tensor(inputs).cuda().type(torch.cuda.FloatTensor))
+        inputs = inputs.reshape(inputs.shape[0], -1)
         outputs = self.model(inputs)
-        outputs = outputs.cpu().detach().numpy().reshape(-1, 19, 3)
+        outputs = outputs.cpu().detach().numpy().reshape(-1, self.joint_num, 3)
         # outputs = unNormalize_skeleton(outputs, shoulder_len, neck_pos, mode='cmu')
         return pose2d, outputs
 
@@ -226,17 +269,22 @@ if __name__ == "__main__":
 
     parser.add_argument('pretrain_model_path', help='Pretrained model path (e.g. ./checkpoint/best.chkpt)')
     parser.add_argument('openpose_json_dir', help='Directory containing the json files output by OpenPose')
+    parser.add_argument('--joint_num', default=15, help='Number of joints')
     parser.add_argument('--save_mp4', help='Path to save the video (e.g. ./videos/output.mp4)')
     parser.add_argument('--save_csv', help='Path to save the csv file (e.g. ./output/output.csv)')
     parser.add_argument('--save_2d_pose_video', help='[for Debug] Path to save the mp4 file (e.g. ./output/output.mp4)')
+    parser.add_argument('--original_video', help='[for Debug] Path to original video file (e.g. ./input/input.mp4)')
 
     args = parser.parse_args()
-
+    joint_num = int(args.joint_num)
 
     # ----- Predict -----
     print('Predicting 3D-Pose from {}'.format(args.openpose_json_dir))
     pbl = PoseBaselineForCOCO(args.pretrain_model_path)
-    inputs, pose3d = pbl.predict(args.openpose_json_dir)
+    if joint_num == 15:
+        inputs, pose3d = pbl.predict(args.openpose_json_dir, mode='joint15')
+    else:
+        inputs, pose3d = pbl.predict(args.openpose_json_dir, mode='joint19')
     # pose3d = smoothingPose(pose3d)
 
 
@@ -261,6 +309,9 @@ if __name__ == "__main__":
 
     # [Debug] check the result of linear interpolation
     if args.save_2d_pose_video:
-        plotUpperBody(inputs, args.save_2d_pose_video, width=640, height=360, fps=25)
+        video = cv2.VideoCapture(args.original_video)
+        W = video.get(cv2.CAP_PROP_FRAME_WIDTH)
+        H = video.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        plotUpperBody(inputs, args.save_2d_pose_video, width=W, height=H, fps=25)
 
     print('Finish')

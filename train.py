@@ -73,7 +73,7 @@ def main(opt):
     print(">>> loading data")
     train_data = torch.load(opt.data_dir+'_train.pth')
     mean_pose = np.mean(train_data['tgt'], axis=0)
-    mean_pose = np.reshape(mean_pose, (19, 3))
+    mean_pose = np.reshape(mean_pose, (opt.joint_num, 3))
     test_data=CMU(data_path=opt.data_dir+'_test.pth',  use_hg=opt.use_hg)
     train_data=CMU(data_path=opt.data_dir+'_train.pth',  use_hg=opt.use_hg)
 
@@ -111,7 +111,7 @@ def main(opt):
                             'mean_pose': mean_pose}
             if save_path != '' and os.path.exists(save_path):
                 os.remove(save_path)
-            save_path = opt.ckpt+'best.chkpt'
+            save_path = opt.ckpt+'_best.chkpt'
             torch.save(checkpoint, save_path)
         
         # write loss to log file
@@ -119,7 +119,7 @@ def main(opt):
         with open(log_train_file, 'a') as log_tr:
             log_tr.write('{},{},{},{},{}\n'.format(epoch, lr_now, loss_train, loss_test, err_test))
 
-def train(train_loader, model, criterion, optimizer, joint_num=19,
+def train(train_loader, model, criterion, optimizer, joint_num,
           lr_init=None, lr_now=None, glob_step=None, lr_decay=None, gamma=None,
           max_norm=True):
     losses = utils.AverageMeter()

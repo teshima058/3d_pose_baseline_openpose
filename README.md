@@ -18,12 +18,11 @@ This is the code for the paper
 ## Tested System Software
 * Windows (Version 10, 64-bit)
 * Python 3.7.9
-* The required Python library is written in [requirements.txt](./requirements.txt)
-
+* The required Python library is written in [requirements.txt](./requirements.txt) \
 Please run `pip install -r requirements.txt`
 
 ## Quick Start
-1. Download pretrained model file [best.chkpt](https://drive.google.com/file/d/1VECM2_SA3WbwK4_vVJ0h1telcFKBJ2vm/view?usp=sharing)
+1. Download pretrained model file [15joints_best.chkpt](https://drive.google.com/file/d/1verrzrGBNUMfFsI7XzQy_ufy67JDQWnw/view?usp=sharing)
 1. Run `python predict.py [pretrained_model_path] [openpose_json_dir] --save_mp4 [mp4 path to save] --save_csv [csv path to save] `
 
       The saved csv file is the format of the data captured by Kinect.

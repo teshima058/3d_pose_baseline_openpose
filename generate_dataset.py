@@ -15,6 +15,28 @@ from src.datasets.utils import angle_between
 from src.poseVisualizer import visualizePose
 
 
+cmu_joint_index = [''] * 19
+cmu_joint_index[0]  = 'Neck'
+cmu_joint_index[1]  = 'Nose'
+cmu_joint_index[2]  = 'MidHip'
+cmu_joint_index[3]  = 'LShoulder'
+cmu_joint_index[4]  = 'LElbow'
+cmu_joint_index[5]  = 'LWrist'
+cmu_joint_index[6]  = 'LHip'
+cmu_joint_index[7]  = 'LKnee'
+cmu_joint_index[8]  = 'LAnkle'
+cmu_joint_index[9]  = 'RShoulder'
+cmu_joint_index[10] = 'RElbow'
+cmu_joint_index[11] = 'RWrist'
+cmu_joint_index[12] = 'RHip'
+cmu_joint_index[13] = 'RKnee'
+cmu_joint_index[14] = 'RAnkle'
+cmu_joint_index[15] = 'LEye'
+cmu_joint_index[16] = 'LEar'
+cmu_joint_index[17] = 'REye'
+cmu_joint_index[18] = 'REar'
+
+
 def normalize_skeleton(_skel, mode='coco'):
     """
     Recoordinate the skeleton so that the position of the neck joint is (0,0) or (0,0,0).
@@ -152,7 +174,7 @@ def augmented_data(skeletons_3d):
         augmented_samples.append(new_sample)
     return augmented_samples
 
-def generate_dataset(raw_dir, dir_name, save_file, data_ratio):
+def generate_dataset(raw_dir, dir_name, save_file, data_ratio, valid_joint_index):
     """Generates dataset based on .json frame files from CMU Panoptic dataset
     this method has been updated to work with 18 joints (COCO) instead of 19 (CMU)"""
     # traverse directories
@@ -171,14 +193,14 @@ def generate_dataset(raw_dir, dir_name, save_file, data_ratio):
                             continue
                         # remove dimention of confidence rate 
                         skel_3d = skel_3d[:, :3]
-                        body_frames_3d.append(skel_3d)
+                        body_frames_3d.append(skel_3d[valid_joint_index])
     body_frames_3d = np.array(body_frames_3d)
 
     print('[INFO] Normalizing...')
     skel_3d, _, _ = normalize_skeleton(body_frames_3d, mode='cmu')
     skel_2d = skel_3d[:, :, :2]
-    skel_3d = np.reshape(skel_3d, (-1, 19*3))
-    skel_2d = np.reshape(skel_2d, (-1, 19*2))
+    skel_3d = np.reshape(skel_3d, (-1, len(valid_joint_index)*3))
+    skel_2d = np.reshape(skel_2d, (-1, len(valid_joint_index)*2))
 
     # split train and test data
     print('[INFO] Split Data (Train : Test = {} : 1)'.format(data_ratio))
@@ -205,9 +227,11 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    VALID_JOINT_INDEX = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14]
+
     DATASER_DIR = args.panoptic_data_dir
     SUFFIX = args.data_suffix
     SAVE_FILE_NAME = args.save_dataset_path
     DATA_RATIO = args.data_ratio
 
-    generate_dataset(DATASER_DIR, SUFFIX, SAVE_FILE_NAME, DATA_RATIO)
+    generate_dataset(DATASER_DIR, SUFFIX, SAVE_FILE_NAME, DATA_RATIO, VALID_JOINT_INDEX)
