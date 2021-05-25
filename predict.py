@@ -1,11 +1,9 @@
 import os
-import sys
 import re
 import json
 import cv2
 import numpy as np
 import argparse 
-from tqdm import tqdm
 
 import torch
 from torch.autograd import Variable
