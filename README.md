@@ -22,8 +22,11 @@ This is the code for the paper
 Please run `pip install -r requirements.txt`
 
 ## Quick Start
-1. Download pretrained model file [15joints_best.chkpt](https://drive.google.com/file/d/1verrzrGBNUMfFsI7XzQy_ufy67JDQWnw/view?usp=sharing)
-1. Run `python predict.py [pretrained_model_path] [openpose_json_dir] --save_mp4 [mp4 path to save] --save_csv [csv path to save] `
+1. Run OpenPose to the video and output json files
+      1. Download the latest zip file from the [Release](https://github.com/CMU-Perceptual-Computing-Lab/openpose/releases) page.
+      1. Unzip to an appropriate folder.
+      1. Run `python run_openpose.py [OpenPose unzip directory] [Input video path] [Directory for output json files]`
+1. Run `python predict.py ./checkpoint/15joints_best.chkpt [openpose_json_dir] --save_mp4 [mp4 path to save] --save_csv [csv path to save] `
 
       The saved csv file is the format of the data captured by Kinect.
 
