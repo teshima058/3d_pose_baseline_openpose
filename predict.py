@@ -278,6 +278,7 @@ if __name__ == "__main__":
 
     # ----- Predict -----
     print('Predicting 3D-Pose from {}'.format(args.openpose_json_dir))
+    print('Output to {}'.format(args.save_csv))
     pbl = PoseBaselineForCOCO(args.pretrain_model_path)
     if joint_num == 15:
         inputs, pose3d = pbl.predict(args.openpose_json_dir, mode='joint15')

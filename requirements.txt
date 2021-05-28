@@ -18,3 +18,4 @@ torchvision==0.8.2
 tqdm==4.56.2
 typing-extensions==3.7.4.3
 wincertstore==0.2
+opencv-python==4.5.1.48

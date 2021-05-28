@@ -42,6 +42,10 @@ if __name__ == '__main__':
     exe.append('0')
     exe.append('--number_people_max')
     exe.append('1')
+    exe.append('--num_gpu')
+    exe.append('1')
+    exe.append('--num_gpu_start')
+    exe.append('0')
 
     print(' '.join(exe))
     subprocess.call(' '.join(exe), shell=True)
